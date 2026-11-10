@@ -1,0 +1,163 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #0f172a;
+    color: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.hidden { display: none !important; }
+
+/* Main Container */
+.card-container {
+    background: #1e293b;
+    padding: 25px;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border: 1px solid #334155;
+}
+
+h1 { color: #fbbf24; margin-bottom: 5px; font-size: 1.8rem; }
+h2 { color: #38bdf8; margin-bottom: 15px; }
+.subtitle { color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px; }
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 10px;
+    border: 2px solid #334155;
+    background: #0f172a;
+    color: #fff;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.link-box {
+    display: flex;
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.link-box input {
+    font-size: 0.8rem;
+    direction: ltr;
+}
+
+.btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 5px;
+}
+
+.btn-primary { background: #fbbf24; color: #0f172a; }
+.btn-secondary { background: #38bdf8; color: #0f172a; }
+.btn-draw { background: #ef4444; color: #fff; width: auto; padding: 10px 30px; margin: 0 auto; }
+.btn:active { transform: scale(0.96); }
+
+.divider { margin: 12px 0; color: #64748b; font-size: 0.85rem; }
+
+.players-list-box {
+    background: #0f172a;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    text-align: right;
+}
+.players-list-box ul { list-style: none; margin-top: 8px; }
+.players-list-box li { padding: 6px 0; color: #e2e8f0; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }
+
+/* Game Board */
+.game-board {
+    width: 100%;
+    max-width: 480px;
+    background: #1e293b;
+    border-radius: 20px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f172a;
+    padding: 10px 15px;
+    border-radius: 12px;
+}
+.room-badge { font-size: 0.8rem; color: #94a3b8; }
+.turn-badge { font-weight: bold; color: #fbbf24; font-size: 0.9rem; }
+
+.table-center {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.slot-label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 5px; text-align: center; }
+
+/* Dynamic Card Styling based on Theme */
+.card {
+    width: 105px;
+    height: 155px;
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 14px;
+    border: 4px solid #3b82f6;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px 6px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    user-select: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-top, .card-bottom { font-size: 0.7rem; font-weight: bold; }
+.card-bottom { align-self: flex-end; }
+.card-top { align-self: flex-start; }
+
+/* Card Categories */
+.card.club { border-color: #2563eb; background: linear-gradient(135deg, #ffffff 60%, #dbeafe); }
+.card.country { border-color: #16a34a; background: linear-gradient(135deg, #ffffff 60%, #dcfce7); }
+.card.coach { border-color: #9333ea; background: linear-gradient(135deg, #ffffff 60%, #f3e8ff); }
+.card.action { border-color: #dc2626; background: linear-gradient(135deg, #ffffff 60%, #fee2e2); }
+.card.var-card { border-color: #eab308; background: #fef9c3; width: 85px; height: 130px; }
+
+.card-icon { font-size: 2.2rem; text-align: center; margin: 4px 0; }
+.card-title { font-size: 0.8rem; font-weight: bold; text-align: center; color: #0f172a; }
+
+.controls-area { text-align: center; }
+
+.player-hand-section h4 { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 8px; }
+.hand-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 5px;
+    scrollbar-width: thin;
+}
+.hand-scroll .card { flex-shrink: 0; cursor: pointer; }
+.hand-scroll .card:hover { transform: translateY(-8px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
