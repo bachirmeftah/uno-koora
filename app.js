@@ -100,22 +100,17 @@ function listenToRoomUpdates(roomId) {
         const data = snapshot.val();
         if (!data) return;
 
-        // تحديث قائمة اللاعبين والتحقق من المضيف بدقة
+        // تحديث قائمة اللاعبين
         if (data.players) {
             const playersUl = document.getElementById('players-ul');
             playersUl.innerHTML = data.players.map((p, i) => `<li>${i + 1}. ${p} ${i === 0 ? '👑' : ''}</li>`).join('');
             
+            // إظهار زر البدء فوراً لأي شخص في الغرفة (أو يمكنك جعله ظاهراً للجميع لتسهيل البدء)
             const startBtn = document.getElementById('start-game-btn');
             const notice = document.getElementById('host-notice');
 
-            // إذا كان اسمك هو منشئ الغرفة (أو أول لاعب انضم)
-            if (data.host === myPlayerName || data.players[0] === myPlayerName) {
-                if (startBtn) startBtn.style.display = "block";
-                if (notice) notice.innerText = "أنت مُنشئ الغرفة، يمكنك بدء اللعب متى شئت.";
-            } else {
-                if (startBtn) startBtn.style.display = "none";
-                if (notice) notice.innerText = "في انتظار أن يقوم مُنشئ الغرفة ببدء اللعب...";
-            }
+            if (startBtn) startBtn.style.display = "block";
+            if (notice) notice.innerText = `المضيف الحالي للغرفة هو: ${data.host}`;
         }
 
         // تحديث الكرت النشط على الطاولة
@@ -136,7 +131,6 @@ function listenToRoomUpdates(roomId) {
             const currentTurnPlayer = players[data.currentTurnIndex || 0];
             document.getElementById('current-turn-display').innerText = `دور اللاعب: ${currentTurnPlayer}`;
 
-            // تفعيل أو تعطيل اللعب بناءً على الدور الحالي
             const handContainer = document.getElementById('my-hand-container');
             if (currentTurnPlayer === myPlayerName) {
                 handContainer.style.opacity = "1";
@@ -166,7 +160,6 @@ function listenToRoomUpdates(roomId) {
         }
     });
 }
-
 function showGameScreen() {
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
