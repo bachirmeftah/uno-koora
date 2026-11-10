@@ -20,39 +20,54 @@ let myHandCards = [];
 let turnTimer = null;
 let timeLeft = 20;
 
-// قاعدة بيانات البطاقات الشاملة مع أسماء الصور الحقيقية من مجلد images
+// قاعدة بيانات البطاقات الشاملة مع أسماء الصور المختصرة والحقيقية من مجلد images
 const cardDeckMaster = [
-    { name: "توتنهام", image: "images/england_tottenham_256x256.football-logos.cc.png" },
-    { name: "مانشستر يونايتد", image: "images/england_manchester-united_256x256.football-logos.cc.png" },
-    { name: "مانشستر سيتي", image: "images/england_manchester-city_256x256.football-logos.cc.png" },
-    { name: "ليفربول", image: "images/england_liverpool_256x256.football-logos.cc.png" },
-    { name: "البريميرليغ", image: "images/england_english-premier-league_256x256.football-logos.cc.png" },
-    { name: "منتخب إنجلترا 1", image: "images/england_england-national-team_256x256.football-logos.cc.png" },
-    { name: "منتخب إنجلترا 2", image: "images/england_england-national-team_2_256x256.football-logos.cc.png" },
-    { name: "تشيلسي", image: "images/england_chelsea_256x256.football-logos.cc.png" },
-    { name: "أرسنال", image: "images/england_arsenal_256x256.football-logos.cc.png" },
-    { name: "البرازيل", image: "images/brazil_brazil-national-team_256x256.football-logos.cc.png" },
+    // --- الأندية الكبرى ---
     { name: "برشلونة", image: "images/barcelona.png" },
-    { name: "الأرجنتين", image: "images/argentina_argentina-national-team_256x256.football-logos.cc.png" },
-    { name: "ميلان", image: "images/italy_milan_256x256.football-logos.cc.png" },
-    { name: "يوفنتوس القديم", image: "images/italy_juventus_256x256.football-logos.cc.png" },
-    { name: "إيطاليا", image: "images/italy_italy-national-team_256x256.football-logos.cc.png" },
-    { name: "إنتر ميلان", image: "images/italy_inter_256x256.football-logos.cc.png" },
-    { name: "ألمانيا", image: "images/germany_germany-national-team_256x256.football-logos.cc.png" },
-    { name: "الدوري الألماني", image: "images/germany_bundesliga_256x256.football-logos.cc.png" },
-    { name: "دورتموند", image: "images/germany_borussia-dortmund_256x256.football-logos.cc.png" },
-    { name: "بايرن ميونخ", image: "images/germany_bayern-munchen_256x256.football-logos.cc.png" },
-    { name: "باريس سان جيرمان", image: "images/france_paris-saint-germain_256x256.football-logos.cc.png" },
-    { name: "الدوري الفرنسي", image: "images/france_ligue-1_256x256.football-logos.cc.png" },
-    { name: "فرنسا", image: "images/france_france-national-team_256x256.football-logos.cc.png" },
-    { name: "ريال مدريد", image: "images/spain_real-madrid_256x256.football-logos.cc.png" },
-    { name: "الليغا", image: "images/spain_la-liga_256x256.football-logos.cc.png" },
-    { name: "أتلتيكو مدريد", image: "images/spain_atletico-madrid_256x256.football-logos.cc.png" },
-    { name: "الدوري السعودي", image: "images/saudi-arabia_saudi-professional-league_256x256.football-logos.cc.png" },
-    { name: "البرتغال", image: "images/portugal_portugal-national-team_256x256.football-logos.cc.png" },
-    { name: "هولندا", image: "images/netherlands_dutch-national-team_256x256.football-logos.cc.png" },
-    { name: "الدوري الإيطالي", image: "images/italy_serie-a_256x256.football-logos.cc.png" },
-    { name: "الدوري الأمريكي (MLS)", image: "images/usa_mls_256x256.football-logos.cc.png" }
+    { name: "ريال مدريد", image: "images/realmadrid.png" },
+    { name: "أتلتيكو مدريد", image: "images/atletico.png" },
+    { name: "مانشستر يونايتد", image: "images/manutd.png" },
+    { name: "مانشستر سيتي", image: "images/mancity.png" },
+    { name: "ليفربول", image: "images/liverpool.png" },
+    { name: "توتنهام", image: "images/tottenham.png" },
+    { name: "تشيلسي", image: "images/chelsea.png" },
+    { name: "أرسنال", image: "images/arsenal.png" },
+    { name: "يوفنتوس", image: "images/juventus.png" },
+    { name: "إي سي ميلان", image: "images/milan.png" },
+    { name: "إنتر ميلان", image: "images/inter.png" },
+    { name: "بايرن ميونخ", image: "images/bayern.png" },
+    { name: "بوروسيا دورتموند", image: "images/dortmund.png" },
+    { name: "باريس سان جيرمان", image: "images/psg.png" },
+
+    // --- المنتخبات الوطنية ---
+    { name: "منتخب إنجلترا", image: "images/england.png" },
+    { name: "منتخب إسبانيا", image: "images/spain.png" },
+    { name: "البرازيل", image: "images/brazil.png" },
+    { name: "الأرجنتين", image: "images/argentina.png" },
+    { name: "فرنسا", image: "images/france.png" },
+    { name: "ألمانيا", image: "images/germany.png" },
+    { name: "إيطاليا", image: "images/italy.png" },
+    { name: "البرتغال", image: "images/portugal.png" },
+    { name: "هولندا", image: "images/netherlands.png" },
+
+    // --- الدوريات والبطولات ---
+    { name: "الدوري الإنجليزي", image: "images/premierleague.png" },
+    { name: "الدوري الإسباني", image: "images/laliga.png" },
+    { name: "الدوري الإيطالي", image: "images/seriea.png" },
+    { name: "الدوري الألماني", image: "images/bundesliga.png" },
+    { name: "الدوري الفرنسي", image: "images/ligue1.png" },
+    { name: "دوري روشن السعودي", image: "images/roshen.png" },
+    { name: "الدوري الأمريكي", image: "images/mls.png" },
+    { name: "كأس الأبطال", image: "images/ucl.png" },
+    { name: "الدوري الأوروبي", image: "images/europa.png" },
+    { name: "كأس العالم", image: "images/worldcup.png" },
+    { name: "بطولة إفريقيا", image: "images/afcon.png" },
+
+    // --- المدربون والنجوم ---
+    { name: "ليونيل ميسي", image: "images/messi.png" },
+    { name: "بيب جوارديولا", image: "images/guardiola.png" },
+    { name: "كارلو أنشيلوتي", image: "images/ancelotti.png" },
+    { name: "جوزيه مورينيو", image: "images/mourinho.png" }
 ];
 
 function createNewGame() {
