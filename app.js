@@ -10,13 +10,14 @@ const firebaseConfig = {
   measurementId: "G-B1L1XD8XKF"
 };
 
-// تهيئة Firebase و Realtime Database
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 let myPlayerName = "";
 let currentRoomId = "";
 let myHandCards = [];
+let turnTimer = null;
+let timeLeft = 20;
 
 // قاعدة بيانات البطاقات الشاملة
 const cardDeckMaster = [
@@ -36,7 +37,7 @@ const cardDeckMaster = [
     { name: "جوزيه مورينيو", icon: "🤫", type: "coach", label: "مدرب" },
     { name: "سحب +2", icon: "➕2️⃣", type: "action", label: "أكشن" },
     { name: "تخطي (Skip)", icon: "🚫", type: "action", label: "أكشن" },
-    { name: "عكس الاتجاه", icon: "🔄", type: "action", label: "أكشن" }
+    { name: "عكس الاتجاه", icon: "🔄", type: "action", label: "عكس" }
 ];
 
 function createNewGame() {
@@ -44,20 +45,23 @@ function createNewGame() {
     if (!myPlayerName) return alert("الرجاء كتابة اسمك أولاً!");
 
     currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-    
-    // عرض رقم الغرفة بوضوح
     document.getElementById('share-link-field').value = currentRoomId;
 
     const initialCard = cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)];
+    
     database.ref('rooms/' + currentRoomId).set({
         host: myPlayerName,
         activeCard: initialCard,
         players: [myPlayerName],
-        status: "waiting"
+        status: "waiting",
+        currentTurnIndex: 0,
+        varActive: false,
+        varCaller: "",
+        varPlayer: ""
     });
 
     listenToRoomUpdates(currentRoomId);
-    showLobbyUI();
+    showLobbyUI(true); // أنت المضيف
 }
 
 function joinGameByCode() {
@@ -79,11 +83,27 @@ function joinGameByCode() {
             }
             
             listenToRoomUpdates(currentRoomId);
-            showLobbyUI();
+            showLobbyUI(false, data.host);
         } else {
             alert("الغرفة غير موجودة أو انتهت!");
         }
     });
+}
+
+function showLobbyUI(isHost, hostName = "") {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.remove('hidden');
+
+    const startBtn = document.getElementById('start-game-btn');
+    const notice = document.getElementById('host-notice');
+
+    if (isHost || myPlayerName === hostName) {
+        startBtn.style.display = "block";
+        notice.innerText = "أنت مُنشئ الغرفة، يمكنك بدء اللعب متى شئت.";
+    } else {
+        startBtn.style.display = "none";
+        notice.innerText = "في انتظار أن يقوم مُنشئ الغرفة ببدء اللعب...";
+    }
 }
 
 function listenToRoomUpdates(roomId) {
@@ -91,13 +111,19 @@ function listenToRoomUpdates(roomId) {
         const data = snapshot.val();
         if (!data) return;
 
-        // تحديث قائمة اللاعبين في الغرفة بشكل لحظي
+        // تحديث قائمة اللاعبين
         if (data.players) {
             const playersUl = document.getElementById('players-ul');
-            playersUl.innerHTML = data.players.map((p, i) => `<li>${i + 1}. ${p}</li>`).join('');
+            playersUl.innerHTML = data.players.map((p, i) => `<li>${i + 1}. ${p} ${i === 0 ? '👑' : ''}</li>`).join('');
+            
+            // تحقق إذا كنت المضيف بعد انضمام لاعبين جدد
+            if (data.players[0] === myPlayerName) {
+                document.getElementById('start-game-btn').style.display = "block";
+                document.getElementById('host-notice').innerText = "أنت مُنشئ الغرفة.";
+            }
         }
 
-        // تحديث الكرت الحالي على الطاولة
+        // تحديث الكرت النشط
         if (data.activeCard) {
             document.getElementById('active-card-name').innerText = data.activeCard.name;
             document.getElementById('active-card-img').innerText = data.activeCard.icon;
@@ -105,22 +131,49 @@ function listenToRoomUpdates(roomId) {
             document.getElementById('active-card').className = `card ${data.activeCard.type}`;
         }
 
-        // الانتقال التلقائي للعب عندما يضغط المضيف على بدء اللعب
-        if (data.status === "playing" && document.getElementById('game-screen').classList.contains('hidden')) {
-            showGameScreen();
+        // إدارة الدور الحالي
+        if (data.status === "playing") {
+            if (document.getElementById('game-screen').classList.contains('hidden')) {
+                showGameScreen();
+            }
+
+            const players = data.players;
+            const currentTurnPlayer = players[data.currentTurnIndex];
+            document.getElementById('current-turn-display').innerText = `دور اللاعب: ${currentTurnPlayer}`;
+
+            // تفعيل أو تعطيل اللعب بناءً على الدور
+            if (currentTurnPlayer === myPlayerName) {
+                document.getElementById('my-hand-container').style.opacity = "1";
+                document.getElementById('my-hand-containerstyle.pointerEvents = "auto"';
+                startTurnTimer();
+            } else {
+                document.getElementById('my-hand-container').style.opacity = "0.5";
+                clearInterval(turnTimer);
+            }
+        }
+
+        // حالة تقنية الفار (VAR)
+        const varBox = document.getElementById('var-modal');
+        if (data.varActive) {
+            varBox.style.display = "block";
+            document.getElementById('var-status-text').innerText = 
+                `🚨 طالب الفار (${data.varCaller}) للتحقيق في لعب اللاعب (${data.varPlayer})!`;
+            
+            // إظهار أزرار التحقيق فقط للمكلفين (صاحب الكرت والمبلغ أو المضيف)
+            if (myPlayerName === data.varCaller || myPlayerName === data.varPlayer || myPlayerName === data.host) {
+                document.getElementById('var-buttons-area').style.display = "block";
+            } else {
+                document.getElementById('var-buttons-area').style.display = "none";
+            }
+        } else {
+            varBox.style.display = "none";
         }
     });
-}
-
-function showLobbyUI() {
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('lobby-screen').classList.remove('hidden');
 }
 
 function showGameScreen() {
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
-    document.getElementById('current-turn-display').innerText = `اللاعب: ${myPlayerName}`;
 
     if (myHandCards.length === 0) {
         for (let i = 0; i < 5; i++) {
@@ -131,15 +184,26 @@ function showGameScreen() {
 }
 
 function startGameSession() {
-    database.ref('rooms/' + currentRoomId).update({ status: "playing" });
-    showGameScreen();
+    database.ref('rooms/' + currentRoomId).update({ 
+        status: "playing",
+        currentTurnIndex: 0 
+    });
 }
 
-function copyRoomLink() {
-    const field = document.getElementById('share-link-field');
-    field.select();
-    navigator.clipboard.writeText(field.value);
-    alert("تم نسخ رقم الغرفة (" + field.value + ") بنجاح!");
+function startTurnTimer() {
+    clearInterval(turnTimer);
+    timeLeft = 20;
+    document.getElementById('timer-display').innerText = timeLeft;
+
+    turnTimer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer-display').innerText = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(turnTimer);
+            alert("انتهى وقتك! تم سحب كرت تلقائي وتمرير الدور.");
+            playerDrawsCard(true); // سحب تلقائي وتمرير الدور
+        }
+    }, 1000);
 }
 
 function renderMyHand() {
@@ -162,15 +226,88 @@ function renderMyHand() {
 }
 
 function playCard(index) {
-    const played = myHandCards.splice(index, 1)[0];
-    database.ref('rooms/' + currentRoomId).update({
-        activeCard: played
+    database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
+        const data = snapshot.val();
+        const players = data.players;
+        const currentTurnPlayer = players[data.currentTurnIndex];
+
+        // التحقق هل هو دورك حقاً؟
+        if (currentTurnPlayer !== myPlayerName) {
+            return alert("ليس دورك الآن!");
+        }
+
+        clearInterval(turnTimer);
+        const played = myHandCards.splice(index, 1)[0];
+        renderMyHand();
+
+        // حساب الدور التالي
+        let nextIndex = (data.currentTurnIndex + 1) % players.length;
+
+        database.ref('rooms/' + currentRoomId).update({
+            activeCard: played,
+            currentTurnIndex: nextIndex,
+            lastPlayer: myPlayerName,
+            lastPlayedCard: played
+        });
     });
-    renderMyHand();
 }
 
-function playerDrawsCard() {
-    const drawn = cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)];
-    myHandCards.push(drawn);
+function playerDrawsCard(autoPass = false) {
+    database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
+        const data = snapshot.val();
+        const players = data.players;
+
+        if (!autoPass && players[data.currentTurnIndex] !== myPlayerName) {
+            return alert("ليس دورك لسحب الكرت!");
+        }
+
+        clearInterval(turnTimer);
+        const drawn = cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)];
+        myHandCards.push(drawn);
+        renderMyHand();
+
+        // سحب الكرت ينهي الدور وينقل الدور للاعب الذي يليه
+        let nextIndex = (data.currentTurnIndex + 1) % players.length;
+        database.ref('rooms/' + currentRoomId).update({
+            currentTurnIndex: nextIndex
+        });
+    });
+}
+
+// زر الفار VAR
+function callVar() {
+    database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
+        const data = snapshot.val();
+        database.ref('rooms/' + currentRoomId).update({
+            varActive: true,
+            varCaller: myPlayerName,
+            varPlayer: data.lastPlayer || "لاعب سابق"
+        });
+    });
+}
+
+// قرار الفار: صحيح
+function varDecisionCorrect() {
+    // الشخص الذي طلب الفار (كاذب/مشكك خطأ) يعاقب بكرتين
+    for(let i=0; i<2; i++) {
+        myHandCards.push(cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)]);
+    }
     renderMyHand();
+    alert("قرر الفار: الكرت صحيح! تم إعطاؤك كرتين عقوبة لأنك شككت في محله.");
+    
+    database.ref('rooms/' + currentRoomId).update({ varActive: false });
+}
+
+// قرار الفار: خطأ
+function varDecisionWrong() {
+    alert("قرر الفار: الكرت خاطئ! سيتم معاقبة اللاعب الذي وضع الكرت بكرتين.");
+    // إغلاق الفار
+    database.ref('rooms/' + currentRoomId).update({ varActive: false });
+}
+
+function copyRoomLink() {
+    const field = document.getElementById('share-link-field');
+    field.select();
+    navigator.clipboard.writeText(field.value);
+    alert("تم نسخ رقم الغرفة (" + field.value + ")!");
 }

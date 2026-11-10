@@ -40,7 +40,8 @@
             </ul>
         </div>
 
-        <button class="btn btn-primary" onclick="startGameSession()">بدء اللعب الآن 🚀</button>
+        <p id="host-notice" style="color: #ccc; margin-bottom: 10px; font-size: 0.9rem;"></p>
+        <button id="start-game-btn" class="btn btn-primary" onclick="startGameSession()" style="display: none;">بدء اللعب الآن 🚀</button>
     </div>
 
     <!-- الشاشة الثالثة: طاولـة اللعب الفعلي -->
@@ -48,6 +49,12 @@
         <div class="top-bar">
             <span class="room-badge">Uno Foot ⚽</span>
             <span id="current-turn-display" class="turn-badge">دور: جارٍ التحميل...</span>
+        </div>
+
+        <!-- شريط الوقت وزر الفار -->
+        <div class="var-top-bar" style="text-align: center; margin: 10px 0;">
+            <span id="timer-badge" style="background: #e74c3c; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem;">الوقت المتبقي: <span id="timer-display">20</span> ثانية</span>
+            <button class="btn" onclick="callVar()" style="background: #f1c40f; color: black; margin-right: 10px; padding: 5px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">📺 طلب VAR (فار)</button>
         </div>
 
         <!-- منتصف الطاولة: الكرت الملعيوب ورصيد السحب -->
@@ -86,9 +93,19 @@
         </div>
     </div>
 
+    <!-- نافذة الفار المنبثقة (VAR Modal) -->
+    <div id="var-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2c3e50; color: white; padding: 25px; border-radius: 10px; z-index: 1000; text-align: center; border: 2px solid #f1c40f; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+        <h3 style="margin-top: 0; color: #f1c40f;">مراجعة تقنية الفيديو (VAR) ⚽📺</h3>
+        <p id="var-status-text" style="margin: 15px 0;">جاري مراجعة اللقطة...</p>
+        <div id="var-buttons-area" style="margin-top: 20px;">
+            <button class="btn" onclick="varDecisionCorrect()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-left: 5px;">الكرت صحيح ✅ (عقوبة للطالب)</button>
+            <button class="btn" onclick="varDecisionWrong()" style="background: #c0392b; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">الكرت خاطئ ❌ (عقوبة للوضع)</button>
+        </div>
+    </div>
+
     <!-- استدعاء مكتبات Firebase السحابية -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
     <!-- ملف اللعبة البرمجي -->
     <script src="app.js"></script>
