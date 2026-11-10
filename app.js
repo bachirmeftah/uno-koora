@@ -2,7 +2,7 @@ let myPlayerName = "";
 let currentRoomId = "";
 let myHandCards = [];
 
-// قاعدة بيانات البطاقات الملونة والشاملة مع الرموز
+// قاعدة بيانات البطاقات الشاملة مع الرموز التعبيرية
 const cardDeckMaster = [
     // أندية
     { name: "برشلونة", icon: "🔴🔵", type: "club", label: "نادي" },
@@ -57,7 +57,7 @@ function showLobbyUI() {
     document.getElementById('lobby-screen').classList.remove('hidden');
 
     const playersUl = document.getElementById('players-ul');
-    playersUl.innerHTML = `<li>1. ${myPlayerName} (أنت)</li><li>2. لاعب انضم عبر الرابط...</li>`;
+    playersUl.innerHTML = `<li>1. ${myPlayerName} (أنت)</li><li>2. في انتظار انضمام الأصدقاء...</li>`;
 }
 
 function copyRoomLink() {
@@ -72,9 +72,9 @@ function startGameSession() {
     document.getElementById('game-screen').classList.remove('hidden');
     document.getElementById('current-turn-display').innerText = `دور: ${myPlayerName}`;
 
-    // توزيع 5 كروت عشوائية لكل لاعب
+    // توزيع 5 كروت عشوائية لكل لاعب كبداية
     myHandCards = [];
-    for(let i=0; i<5; i++){
+    for(let i = 0; i < 5; i++){
         myHandCards.push(cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)]);
     }
     renderMyHand();
