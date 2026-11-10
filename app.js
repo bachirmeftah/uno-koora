@@ -204,11 +204,11 @@ function renderMyHand() {
         div.onclick = () => playCard(index);
         div.innerHTML = `
             <div class="card-top">${card.label}</div>
-            <div>
+            <div class="card-center-content">
                 <div class="card-icon">${card.icon}</div>
                 <div class="card-title">${card.name}</div>
             </div>
-            <div class="card-bottom">${card.label}</div>
+            <div class="card-bottom">⚽</div>
         `;
         container.appendChild(div);
     });
