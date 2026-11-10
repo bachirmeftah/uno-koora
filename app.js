@@ -1,30 +1,39 @@
+// إعدادات Firebase الخاصة بمشروعك
+const firebaseConfig = {
+  apiKey: "AIzaSyAE3LYcGe_Dzdec4kxaM68erElOGWmCD9o",
+  authDomain: "uno-koora.firebaseapp.com",
+  databaseURL: "https://uno-koora-default-rtdb.firebaseio.com",
+  projectId: "uno-koora",
+  storageBucket: "uno-koora.firebasestorage.app",
+  messagingSenderId: "761220350643",
+  appId: "1:761220350643:web:30ecda5bfcc609d43aa6c6",
+  measurementId: "G-B1L1XD8XKF"
+};
+
+// تهيئة Firebase و Realtime Database
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 let myPlayerName = "";
 let currentRoomId = "";
 let myHandCards = [];
 
-// قاعدة بيانات البطاقات الشاملة مع الرموز التعبيرية
+// قاعدة بيانات البطاقات
 const cardDeckMaster = [
-    // أندية
     { name: "برشلونة", icon: "🔴🔵", type: "club", label: "نادي" },
     { name: "ريال مدريد", icon: "⚪", type: "club", label: "نادي" },
     { name: "بايرن ميونخ", icon: "🔴", type: "club", label: "نادي" },
     { name: "مانشستر سيتي", icon: "🩵", type: "club", label: "نادي" },
     { name: "ليفربول", icon: "🔴🟢", type: "club", label: "نادي" },
     { name: "يوفنتوس", icon: "⚪⚫", type: "club", label: "نادي" },
-    
-    // منتخبات
     { name: "البرازيل", icon: "🇧🇷", type: "country", label: "منتخب" },
     { name: "الأرجنتين", icon: "🇦🇷", type: "country", label: "منتخب" },
     { name: "فرنسا", icon: "🇫🇷", type: "country", label: "منتخب" },
     { name: "إسبانيا", icon: "🇪🇸", type: "country", label: "منتخب" },
     { name: "ألمانيا", icon: "🇩🇪", type: "country", label: "منتخب" },
-    
-    // مدربين
     { name: "بيب جوارديولا", icon: "👔", type: "coach", label: "مدرب" },
     { name: "كارلو أنشيلوتي", icon: "🤨", type: "coach", label: "مدرب" },
     { name: "جوزيه مورينيو", icon: "🤫", type: "coach", label: "مدرب" },
-    
-    // أكشن
     { name: "سحب +2", icon: "➕2️⃣", type: "action", label: "أكشن" },
     { name: "تخطي (Skip)", icon: "🚫", type: "action", label: "أكشن" },
     { name: "عكس الاتجاه", icon: "🔄", type: "action", label: "أكشن" }
@@ -38,26 +47,98 @@ function createNewGame() {
     const roomUrl = window.location.origin + window.location.pathname + "#room=" + currentRoomId;
 
     document.getElementById('share-link-field').value = roomUrl;
+
+    // إنشاء بيانات الغرفة في قاعدة البيانات
+    const initialCard = cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)];
+    database.ref('rooms/' + currentRoomId).set({
+        host: myPlayerName,
+        activeCard: initialCard,
+        players: [myPlayerName],
+        status: "waiting"
+    });
+
+    listenToRoomUpdates(currentRoomId);
     showLobbyUI();
 }
 
 function joinGameViaInput() {
     myPlayerName = document.getElementById('player-name').value.trim();
-    const inputLink = document.getElementById('join-link-input').value.trim();
+    let inputLink = document.getElementById('join-link-input').value.trim();
 
     if (!myPlayerName) return alert("الرجاء كتابة اسمك أولاً!");
     if (!inputLink) return alert("الرجاء وضع رابط الغرفة!");
 
-    document.getElementById('share-link-field').value = inputLink;
-    showLobbyUI();
+    if (inputLink.includes("#room=")) {
+        currentRoomId = inputLink.split("#room=")[1];
+    } else {
+        currentRoomId = inputLink;
+    }
+
+    const roomRef = database.ref('rooms/' + currentRoomId);
+    roomRef.once('value', (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            let players = data.players || [];
+            if (!players.includes(myPlayerName)) {
+                players.push(myPlayerName);
+                roomRef.update({ players: players });
+            }
+            document.getElementById('share-link-field').value = window.location.href;
+            listenToRoomUpdates(currentRoomId);
+            showLobbyUI();
+        } else {
+            alert("الغرفة غير موجودة!");
+        }
+    });
+}
+
+function listenToRoomUpdates(roomId) {
+    database.ref('rooms/' + roomId).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // تحديث قائمة اللاعبين في اللوبي
+        if (data.players) {
+            const playersUl = document.getElementById('players-ul');
+            playersUl.innerHTML = data.players.map((p, i) => `<li>${i + 1}. ${p}</li>`).join('');
+        }
+
+        // تحديث الكرت النشط على الطاولة
+        if (data.activeCard) {
+            document.getElementById('active-card-name').innerText = data.activeCard.name;
+            document.getElementById('active-card-img').innerText = data.activeCard.icon;
+            document.getElementById('active-card-type').innerText = data.activeCard.label;
+            document.getElementById('active-card').className = `card ${data.activeCard.type}`;
+        }
+
+        // إذا بدأت اللعبة
+        if (data.status === "playing" && document.getElementById('game-screen').classList.contains('hidden')) {
+            showGameScreen();
+        }
+    });
 }
 
 function showLobbyUI() {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.remove('hidden');
+}
 
-    const playersUl = document.getElementById('players-ul');
-    playersUl.innerHTML = `<li>1. ${myPlayerName} (أنت)</li><li>2. في انتظار انضمام الأصدقاء...</li>`;
+function showGameScreen() {
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('current-turn-display').innerText = `اللاعب: ${myPlayerName}`;
+
+    if (myHandCards.length === 0) {
+        for (let i = 0; i < 5; i++) {
+            myHandCards.push(cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)]);
+        }
+        renderMyHand();
+    }
+}
+
+function startGameSession() {
+    database.ref('rooms/' + currentRoomId).update({ status: "playing" });
+    showGameScreen();
 }
 
 function copyRoomLink() {
@@ -65,19 +146,6 @@ function copyRoomLink() {
     linkField.select();
     navigator.clipboard.writeText(linkField.value);
     alert("تم نسخ رابط الغرفة! أرسله لأصدقائك.");
-}
-
-function startGameSession() {
-    document.getElementById('lobby-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    document.getElementById('current-turn-display').innerText = `دور: ${myPlayerName}`;
-
-    // توزيع 5 كروت عشوائية لكل لاعب كبداية
-    myHandCards = [];
-    for(let i = 0; i < 5; i++){
-        myHandCards.push(cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)]);
-    }
-    renderMyHand();
 }
 
 function renderMyHand() {
@@ -101,10 +169,9 @@ function renderMyHand() {
 
 function playCard(index) {
     const played = myHandCards.splice(index, 1)[0];
-    document.getElementById('active-card-name').innerText = played.name;
-    document.getElementById('active-card-img').innerText = played.icon;
-    document.getElementById('active-card-type').innerText = played.label;
-    document.getElementById('active-card').className = `card ${played.type}`;
+    database.ref('rooms/' + currentRoomId).update({
+        activeCard: played
+    });
     renderMyHand();
 }
 
