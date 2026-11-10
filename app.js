@@ -1,4 +1,4 @@
-// إعدادات Firebase الخاصة بمشروعك
+// إعدادات Firebase الخاصة بمشروعك (تأكد من مطابقتها لإعداداتك الفعلية)
 const firebaseConfig = {
   apiKey: "AIzaSyAE3LYcGe_Dzdec4kxaM68erElOGWmCD9o",
   authDomain: "uno-koora.firebaseapp.com",
@@ -10,6 +10,7 @@ const firebaseConfig = {
   measurementId: "G-B1L1XD8XKF"
 };
 
+// تهيئة Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
@@ -19,25 +20,31 @@ let myHandCards = [];
 let turnTimer = null;
 let timeLeft = 20;
 
-// قاعدة بيانات البطاقات الشاملة
+// قاعدة بيانات البطاقات الشاملة - باستخدام أسماء ملفات الصور
+// تأكد من وجود هذه الملفات داخل مجلد يسمى "images" في نفس مستوى ملف html
 const cardDeckMaster = [
-    { name: "برشلونة", icon: "🔴🔵", type: "club", label: "نادي" },
-    { name: "ريال مدريد", icon: "⚪", type: "club", label: "نادي" },
-    { name: "بايرن ميونخ", icon: "🔴", type: "club", label: "نادي" },
-    { name: "مانشستر سيتي", icon: "🩵", type: "club", label: "نادي" },
-    { name: "ليفربول", icon: "🔴🟢", type: "club", label: "نادي" },
-    { name: "يوفنتوس", icon: "⚪⚫", type: "club", label: "نادي" },
-    { name: "البرازيل", icon: "🇧🇷", type: "country", label: "منتخب" },
-    { name: "الأرجنتين", icon: "🇦🇷", type: "country", label: "منتخب" },
-    { name: "فرنسا", icon: "🇫🇷", type: "country", label: "منتخب" },
-    { name: "إسبانيا", icon: "🇪🇸", type: "country", label: "منتخب" },
-    { name: "ألمانيا", icon: "🇩🇪", type: "country", label: "منتخب" },
-    { name: "بيب جوارديولا", icon: "👔", type: "coach", label: "مدرب" },
-    { name: "كارلو أنشيلوتي", icon: "🤨", type: "coach", label: "مدرب" },
-    { name: "جوزيه مورينيو", icon: "🤫", type: "coach", label: "مدرب" },
-    { name: "سحب +2", icon: "➕2️⃣", type: "action", label: "أكشن" },
-    { name: "تخطي (Skip)", icon: "🚫", type: "action", label: "أكشن" },
-    { name: "عكس الاتجاه", icon: "🔄", type: "action", label: "عكس" }
+    { name: "برشلونة", image: "images/barcelona_card.png" },
+    { name: "ريال مدريد", image: "images/real_madrid_card.png" },
+    { name: "بايرن ميونخ", image: "images/bayern_munich_card.png" },
+    { name: "مانشستر سيتي", image: "images/man_city_card.png" },
+    { name: "ليفربول", image: "images/liverpool_card.png" },
+    { name: "مانشستر يونايتد", image: "images/man_united_card.png" },
+    { name: "يوفنتوس", image: "images/juventus_new_card.png" },
+    { name: "البرازيل", image: "images/brazil_card.png" },
+    { name: "الأرجنتين", image: "images/argentina_card.png" },
+    { name: "فرنسا", image: "images/france_card.png" },
+    { name: "ألمانيا", image: "images/germany_card.png" },
+    { name: "بيب جوارديولا", image: "images/guardiola_card.png" },
+    { name: "كارلو أنشيلوتي", image: "images/ancelotti_card.png" },
+    { name: "جوزيه مورينيو", image: "images/mourinho_card.png" },
+    { name: "الكرة الذهبية", image: "images/ballon_dor_card.png" },
+    { name: "كأس الأبطال", image: "images/champions_league_card.png" },
+    { name: "الدوري الألماني", image: "images/bundesliga_card.png" },
+    { name: "الدوري الأمريكي", image: "images/mls_card.png" },
+    // يمكنك إضافة المزيد من البطاقات هنا
+    { name: "سحب +2", image: "images/draw_two_card.png" }, // مثال لبطاقة أكشن
+    { name: "تخطي", image: "images/skip_card.png" }, // مثال لبطاقة أكشن
+    { name: "عكس الاتجاه", image: "images/reverse_card.png" } // مثال لبطاقة أكشن
 ];
 
 function createNewGame() {
@@ -105,20 +112,31 @@ function listenToRoomUpdates(roomId) {
             const playersUl = document.getElementById('players-ul');
             playersUl.innerHTML = data.players.map((p, i) => `<li>${i + 1}. ${p} ${i === 0 ? '👑' : ''}</li>`).join('');
             
-            // إظهار زر البدء فوراً لأي شخص في الغرفة (أو يمكنك جعله ظاهراً للجميع لتسهيل البدء)
             const startBtn = document.getElementById('start-game-btn');
             const notice = document.getElementById('host-notice');
 
-            if (startBtn) startBtn.style.display = "block";
-            if (notice) notice.innerText = `المضيف الحالي للغرفة هو: ${data.host}`;
+            if (data.host === myPlayerName || data.players[0] === myPlayerName) {
+                if (startBtn) startBtn.style.display = "block";
+                if (notice) notice.innerText = "أنت مُنشئ الغرفة، يمكنك بدء اللعب متى شئت.";
+            } else {
+                if (startBtn) startBtn.style.display = "none";
+                if (notice) notice.innerText = "في انتظار أن يقوم مُنشئ الغرفة ببدء اللعب...";
+            }
         }
 
-        // تحديث الكرت النشط على الطاولة
+        // تحديث الكرت النشط على الطاولة - استخدام الصورة
         if (data.activeCard) {
             document.getElementById('active-card-name').innerText = data.activeCard.name;
-            document.getElementById('active-card-img').innerText = data.activeCard.icon;
-            document.getElementById('active-card-type').innerText = data.activeCard.label;
-            document.getElementById('active-card').className = `card ${data.activeCard.type}`;
+            const cardImgElement = document.getElementById('active-card-img');
+            if (data.activeCard.image) {
+                cardImgElement.src = data.activeCard.image;
+                cardImgElement.alt = data.activeCard.name;
+                cardImgElement.style.display = "block";
+                document.getElementById('active-card-icon-placeholder').style.display = "none";
+            } else {
+                cardImgElement.style.display = "none";
+                document.getElementById('active-card-icon-placeholder').style.display = "block";
+            }
         }
 
         // إدارة الأدوار وحالة اللعبة
@@ -160,6 +178,7 @@ function listenToRoomUpdates(roomId) {
         }
     });
 }
+
 function showGameScreen() {
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -195,17 +214,20 @@ function startTurnTimer() {
     }, 1000);
 }
 
+// دالة رسم بطاقات اليد - استخدام الصور
 function renderMyHand() {
     const container = document.getElementById('my-hand-container');
     container.innerHTML = '';
     myHandCards.forEach((card, index) => {
         const div = document.createElement('div');
-        div.className = `card ${card.type}`;
+        div.className = 'card'; // إزالة الفئات الخاصة
         div.onclick = () => playCard(index);
+        
+        // بناء محتوى البطاقة باستخدام الصورة
         div.innerHTML = `
-            <div class="card-top">${card.label}</div>
+            <div class="card-top">UNO</div>
             <div class="card-center-content">
-                <div class="card-icon">${card.icon}</div>
+                <img src="${card.image}" alt="${card.name}" class="card-image">
                 <div class="card-title">${card.name}</div>
             </div>
             <div class="card-bottom">⚽</div>
@@ -260,7 +282,6 @@ function playerDrawsCard(autoPass = false) {
     });
 }
 
-// طلب الفار (VAR)
 function callVar() {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
@@ -272,7 +293,6 @@ function callVar() {
     });
 }
 
-// قرار الفار: صحيح
 function varDecisionCorrect() {
     for(let i=0; i<2; i++) {
         myHandCards.push(cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)]);
@@ -282,7 +302,6 @@ function varDecisionCorrect() {
     database.ref('rooms/' + currentRoomId).update({ varActive: false });
 }
 
-// قرار الفار: خطأ
 function varDecisionWrong() {
     alert("قرر الفار: الكرت خاطئ! سيتم معاقبة اللاعب الذي وضع الكرت بكرتين.");
     database.ref('rooms/' + currentRoomId).update({ varActive: false });
