@@ -1,4 +1,4 @@
-// إعدادات Firebase الخاصة بمشروعك (تأكد من مطابقتها لإعداداتك الفعلية)
+// إعدادات Firebase الخاصة بمشروعك
 const firebaseConfig = {
   apiKey: "AIzaSyAE3LYcGe_Dzdec4kxaM68erElOGWmCD9o",
   authDomain: "uno-koora.firebaseapp.com",
@@ -20,31 +20,39 @@ let myHandCards = [];
 let turnTimer = null;
 let timeLeft = 20;
 
-// قاعدة بيانات البطاقات الشاملة - باستخدام أسماء ملفات الصور
-// تأكد من وجود هذه الملفات داخل مجلد يسمى "images" في نفس مستوى ملف html
+// قاعدة بيانات البطاقات الشاملة مع أسماء الصور الحقيقية من مجلد images
 const cardDeckMaster = [
-    { name: "برشلونة", image: "images/barcelona_card.png" },
-    { name: "ريال مدريد", image: "images/real_madrid_card.png" },
-    { name: "بايرن ميونخ", image: "images/bayern_munich_card.png" },
-    { name: "مانشستر سيتي", image: "images/man_city_card.png" },
-    { name: "ليفربول", image: "images/liverpool_card.png" },
-    { name: "مانشستر يونايتد", image: "images/man_united_card.png" },
-    { name: "يوفنتوس", image: "images/juventus_new_card.png" },
-    { name: "البرازيل", image: "images/brazil_card.png" },
-    { name: "الأرجنتين", image: "images/argentina_card.png" },
-    { name: "فرنسا", image: "images/france_card.png" },
-    { name: "ألمانيا", image: "images/germany_card.png" },
-    { name: "بيب جوارديولا", image: "images/guardiola_card.png" },
-    { name: "كارلو أنشيلوتي", image: "images/ancelotti_card.png" },
-    { name: "جوزيه مورينيو", image: "images/mourinho_card.png" },
-    { name: "الكرة الذهبية", image: "images/ballon_dor_card.png" },
-    { name: "كأس الأبطال", image: "images/champions_league_card.png" },
-    { name: "الدوري الألماني", image: "images/bundesliga_card.png" },
-    { name: "الدوري الأمريكي", image: "images/mls_card.png" },
-    // يمكنك إضافة المزيد من البطاقات هنا
-    { name: "سحب +2", image: "images/draw_two_card.png" }, // مثال لبطاقة أكشن
-    { name: "تخطي", image: "images/skip_card.png" }, // مثال لبطاقة أكشن
-    { name: "عكس الاتجاه", image: "images/reverse_card.png" } // مثال لبطاقة أكشن
+    { name: "توتنهام", image: "images/england_tottenham_256x256.football-logos.cc.png" },
+    { name: "مانشستر يونايتد", image: "images/england_manchester-united_256x256.football-logos.cc.png" },
+    { name: "مانشستر سيتي", image: "images/england_manchester-city_256x256.football-logos.cc.png" },
+    { name: "ليفربول", image: "images/england_liverpool_256x256.football-logos.cc.png" },
+    { name: "البريميرليغ", image: "images/england_english-premier-league_256x256.football-logos.cc.png" },
+    { name: "منتخب إنجلترا 1", image: "images/england_england-national-team_256x256.football-logos.cc.png" },
+    { name: "منتخب إنجلترا 2", image: "images/england_england-national-team_2_256x256.football-logos.cc.png" },
+    { name: "تشيلسي", image: "images/england_chelsea_256x256.football-logos.cc.png" },
+    { name: "أرسنال", image: "images/england_arsenal_256x256.football-logos.cc.png" },
+    { name: "البرازيل", image: "images/brazil_brazil-national-team_256x256.football-logos.cc.png" },
+    { name: "برشلونة", image: "images/barcelona.png" },
+    { name: "الأرجنتين", image: "images/argentina_argentina-national-team_256x256.football-logos.cc.png" },
+    { name: "ميلان", image: "images/italy_milan_256x256.football-logos.cc.png" },
+    { name: "يوفنتوس القديم", image: "images/italy_juventus_256x256.football-logos.cc.png" },
+    { name: "إيطاليا", image: "images/italy_italy-national-team_256x256.football-logos.cc.png" },
+    { name: "إنتر ميلان", image: "images/italy_inter_256x256.football-logos.cc.png" },
+    { name: "ألمانيا", image: "images/germany_germany-national-team_256x256.football-logos.cc.png" },
+    { name: "الدوري الألماني", image: "images/germany_bundesliga_256x256.football-logos.cc.png" },
+    { name: "دورتموند", image: "images/germany_borussia-dortmund_256x256.football-logos.cc.png" },
+    { name: "بايرن ميونخ", image: "images/germany_bayern-munchen_256x256.football-logos.cc.png" },
+    { name: "باريس سان جيرمان", image: "images/france_paris-saint-germain_256x256.football-logos.cc.png" },
+    { name: "الدوري الفرنسي", image: "images/france_ligue-1_256x256.football-logos.cc.png" },
+    { name: "فرنسا", image: "images/france_france-national-team_256x256.football-logos.cc.png" },
+    { name: "ريال مدريد", image: "images/spain_real-madrid_256x256.football-logos.cc.png" },
+    { name: "الليغا", image: "images/spain_la-liga_256x256.football-logos.cc.png" },
+    { name: "أتلتيكو مدريد", image: "images/spain_atletico-madrid_256x256.football-logos.cc.png" },
+    { name: "الدوري السعودي", image: "images/saudi-arabia_saudi-professional-league_256x256.football-logos.cc.png" },
+    { name: "البرتغال", image: "images/portugal_portugal-national-team_256x256.football-logos.cc.png" },
+    { name: "هولندا", image: "images/netherlands_dutch-national-team_256x256.football-logos.cc.png" },
+    { name: "الدوري الإيطالي", image: "images/italy_serie-a_256x256.football-logos.cc.png" },
+    { name: "الدوري الأمريكي (MLS)", image: "images/usa_mls_256x256.football-logos.cc.png" }
 ];
 
 function createNewGame() {
@@ -214,16 +222,15 @@ function startTurnTimer() {
     }, 1000);
 }
 
-// دالة رسم بطاقات اليد - استخدام الصور
+// دالة رسم بطاقات اليد - استخدام الصور الفعلية
 function renderMyHand() {
     const container = document.getElementById('my-hand-container');
     container.innerHTML = '';
     myHandCards.forEach((card, index) => {
         const div = document.createElement('div');
-        div.className = 'card'; // إزالة الفئات الخاصة
+        div.className = 'card';
         div.onclick = () => playCard(index);
         
-        // بناء محتوى البطاقة باستخدام الصورة
         div.innerHTML = `
             <div class="card-top">UNO</div>
             <div class="card-center-content">
