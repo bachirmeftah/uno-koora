@@ -18,7 +18,7 @@ let myPlayerName = "";
 let currentRoomId = "";
 let myHandCards = [];
 
-// قاعدة بيانات البطاقات
+// قاعدة بيانات البطاقات الشاملة
 const cardDeckMaster = [
     { name: "برشلونة", icon: "🔴🔵", type: "club", label: "نادي" },
     { name: "ريال مدريد", icon: "⚪", type: "club", label: "نادي" },
@@ -44,11 +44,10 @@ function createNewGame() {
     if (!myPlayerName) return alert("الرجاء كتابة اسمك أولاً!");
 
     currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-    const roomUrl = window.location.origin + window.location.pathname + "#room=" + currentRoomId;
+    
+    // عرض رقم الغرفة بوضوح
+    document.getElementById('share-link-field').value = currentRoomId;
 
-    document.getElementById('share-link-field').value = roomUrl;
-
-    // إنشاء بيانات الغرفة في قاعدة البيانات
     const initialCard = cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)];
     database.ref('rooms/' + currentRoomId).set({
         host: myPlayerName,
@@ -61,33 +60,28 @@ function createNewGame() {
     showLobbyUI();
 }
 
-function joinGameViaInput() {
+function joinGameByCode() {
     myPlayerName = document.getElementById('player-name').value.trim();
-    let inputLink = document.getElementById('join-link-input').value.trim();
+    currentRoomId = document.getElementById('room-code-input').value.trim();
 
     if (!myPlayerName) return alert("الرجاء كتابة اسمك أولاً!");
-    if (!inputLink) return alert("الرجاء وضع رابط الغرفة!");
-
-    if (inputLink.includes("#room=")) {
-        currentRoomId = inputLink.split("#room=")[1];
-    } else {
-        currentRoomId = inputLink;
-    }
+    if (!currentRoomId) return alert("الرجاء إدخال رقم الغرفة!");
 
     const roomRef = database.ref('rooms/' + currentRoomId);
     roomRef.once('value', (snapshot) => {
         if (snapshot.exists()) {
             const data = snapshot.val();
             let players = data.players || [];
+            
             if (!players.includes(myPlayerName)) {
                 players.push(myPlayerName);
                 roomRef.update({ players: players });
             }
-            document.getElementById('share-link-field').value = window.location.href;
+            
             listenToRoomUpdates(currentRoomId);
             showLobbyUI();
         } else {
-            alert("الغرفة غير موجودة!");
+            alert("الغرفة غير موجودة أو انتهت!");
         }
     });
 }
@@ -97,13 +91,13 @@ function listenToRoomUpdates(roomId) {
         const data = snapshot.val();
         if (!data) return;
 
-        // تحديث قائمة اللاعبين في اللوبي
+        // تحديث قائمة اللاعبين في الغرفة بشكل لحظي
         if (data.players) {
             const playersUl = document.getElementById('players-ul');
             playersUl.innerHTML = data.players.map((p, i) => `<li>${i + 1}. ${p}</li>`).join('');
         }
 
-        // تحديث الكرت النشط على الطاولة
+        // تحديث الكرت الحالي على الطاولة
         if (data.activeCard) {
             document.getElementById('active-card-name').innerText = data.activeCard.name;
             document.getElementById('active-card-img').innerText = data.activeCard.icon;
@@ -111,7 +105,7 @@ function listenToRoomUpdates(roomId) {
             document.getElementById('active-card').className = `card ${data.activeCard.type}`;
         }
 
-        // إذا بدأت اللعبة
+        // الانتقال التلقائي للعب عندما يضغط المضيف على بدء اللعب
         if (data.status === "playing" && document.getElementById('game-screen').classList.contains('hidden')) {
             showGameScreen();
         }
@@ -142,10 +136,10 @@ function startGameSession() {
 }
 
 function copyRoomLink() {
-    const linkField = document.getElementById('share-link-field');
-    linkField.select();
-    navigator.clipboard.writeText(linkField.value);
-    alert("تم نسخ رابط الغرفة! أرسله لأصدقائك.");
+    const field = document.getElementById('share-link-field');
+    field.select();
+    navigator.clipboard.writeText(field.value);
+    alert("تم نسخ رقم الغرفة (" + field.value + ") بنجاح!");
 }
 
 function renderMyHand() {
