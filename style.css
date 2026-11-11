@@ -130,22 +130,19 @@ input[type="text"] {
 }
 
 /* تصميم البطاقة النظيف (عرض الصورة الجاهزة مباشرة بدون إطارات بيضاء قديمة) */
+/* الكرت يصبح مجرد إطار يحمل الصورة مباشرة بدون أي خلفيات */
 .card {
     width: 110px;
     height: 160px;
     background: transparent !important;
     border: none !important;
-    border-radius: 12px;
     box-shadow: 0 6px 15px rgba(0,0,0,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
+    border-radius: 12px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     user-select: none;
-    box-sizing: border-box;
     flex-shrink: 0;
+    overflow: hidden; /* لقص أي زوائد وجعل الصورة تلتصق بالحواف بملء الإطار */
 }
 
 .card:hover {
@@ -153,19 +150,18 @@ input[type="text"] {
     box-shadow: 0 10px 20px rgba(56, 189, 248, 0.4);
 }
 
-/* إزالة الشكل البيضاوي القديم لكي تظهر صورتك بالكامل */
 .card::before {
     display: none !important;
 }
 
-/* تنسيق الصورة داخل البطاقة لتملأ المساحة بشكل مثالي ومنحني الأطراف */
 .pure-card-image {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: fill; /* لملء البطاقة بالكامل بالصورة التي صممتها */
     border-radius: 12px;
     display: block;
 }
+
 
 /* قسم أوراق اللاعب في الأسفل */
 .player-hand-section {

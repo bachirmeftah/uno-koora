@@ -274,8 +274,9 @@ function renderMyHand() {
         div.className = 'card';
         div.onclick = () => playCard(index);
         
+        // استخدام الكلاس النظيف مباشرة بدون أي عناصر إضافية داخله
         div.innerHTML = `
-            <img src="${card.image}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block;">
+            <img src="${card.image}" alt="${card.name}" class="pure-card-image">
         `;
         container.appendChild(div);
     });
