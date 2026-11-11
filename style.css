@@ -232,6 +232,12 @@ input[type="text"] {
     padding-bottom: 5px;
     min-height: 175px;
 }
+.pure-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* لضمان ملء البطاقة بالشكل الصحيح */
+    border-radius: 10px; /* لإنحناء الحواف إذا لزم الأمر */
+}
 
 .hand-scroll::-webkit-scrollbar {
     height: 6px;

@@ -1,13 +1,13 @@
 // إعدادات Firebase الخاصة بمشروعك
 const firebaseConfig = {
-  apiKey: "AIzaSyAE3LYcGe_Dzdec4kxaM68erElOGWmCD9o",
-  authDomain: "uno-koora.firebaseapp.com",
-  databaseURL: "https://uno-koora-default-rtdb.firebaseio.com",
-  projectId: "uno-koora",
-  storageBucket: "uno-koora.firebasestorage.app",
-  messagingSenderId: "761220350643",
-  appId: "1:761220350643:web:30ecda5bfcc609d43aa6c6",
-  measurementId: "G-B1L1XD8XKF"
+    apiKey: "AIzaSyAE3LYcGe_Dzdec4kxaM68erElOGWmCD9o",
+    authDomain: "uno-koora.firebaseapp.com",
+    databaseURL: "https://uno-koora-default-rtdb.firebaseio.com",
+    projectId: "uno-koora",
+    storageBucket: "uno-koora.firebasestorage.app",
+    messagingSenderId: "761220350643",
+    appId: "1:761220350643:web:30ecda5bfcc609d43aa6c6",
+    measurementId: "G-B1L1XD8XKF"
 };
 
 // تهيئة Firebase
@@ -20,7 +20,7 @@ let myHandCards = [];
 let turnTimer = null;
 let timeLeft = 20;
 
-// قاعدة بيانات البطاقات الشاملة مع أسماء الصور المختصرة والحقيقية من مجلد images
+// قاعدة بيانات البطاقات الشاملة مع الصور الجاهزة
 const cardDeckMaster = [
     // --- الأندية الكبرى ---
     { name: "برشلونة", image: "images/barcelona.png" },
@@ -50,7 +50,7 @@ const cardDeckMaster = [
     { name: "البرتغال", image: "images/portugal.png" },
     { name: "هولندا", image: "images/netherlands.png" },
 
-    // --- الدوريات والبطولات ---
+    // --- الدوريات والبطولات وأبطالها ---
     { name: "الدوري الإنجليزي", image: "images/premierleague.png" },
     { name: "الدوري الإسباني", image: "images/laliga.png" },
     { name: "الدوري الإيطالي", image: "images/seriea.png" },
@@ -63,7 +63,34 @@ const cardDeckMaster = [
     { name: "كأس العالم", image: "images/worldcup.png" },
     { name: "بطولة إفريقيا", image: "images/afcon.png" },
 
-    // --- المدربون والنجوم ---
+    { name: "بطل إنجلترا", image: "images/champengland.png" },
+    { name: "بطل إسبانيا", image: "images/champlaliga.png" },
+    { name: "بطل إيطاليا", image: "images/champseriea.png" },
+    { name: "بطل ألمانيا", image: "images/champbundesliga.png" },
+    { name: "بطل فرنسا", image: "images/champligue1.png" },
+
+    // --- بطاقات الأكشن (متعددة المستويات) ---
+    { name: "تخطي رقم 1", image: "images/skip1.png" },
+    { name: "+2 رقم 1", image: "images/plus2x1.png" },
+    { name: "تغيير اتجاه اللعب رقم 1", image: "images/reverse1.png" },
+
+    { name: "تخطي رقم 2", image: "images/skip2.png" },
+    { name: "+2 رقم 2", image: "images/plus2x2.png" },
+    { name: "تغيير اتجاه اللعب رقم 2", image: "images/reverse2.png" },
+
+    { name: "تخطي رقم 3", image: "images/skip3.png" },
+    { name: "+2 رقم 3", image: "images/plus2x3.png" },
+    { name: "تغيير اتجاه اللعب رقم 3", image: "images/reverse3.png" },
+
+    // --- الجوائز، القارات والنجوم ---
+    { name: "هداف بطولة موسم", image: "images/topscorer.png" },
+    { name: "فاز ببطولة قارية", image: "images/continentalchamp.png" },
+    { name: "قارة آسيا", image: "images/asia.png" },
+    { name: "قارة أوروبا", image: "images/europe.png" },
+    { name: "قارة أمريكا", image: "images/americas.png" },
+    { name: "الكرة الذهبية", image: "images/ballondor.png" },
+    { name: "الحذاء الذهبي", image: "images/goldenboot.png" },
+    { name: "رونالدو", image: "images/ronaldo.png" },
     { name: "ليونيل ميسي", image: "images/messi.png" },
     { name: "بيب جوارديولا", image: "images/guardiola.png" },
     { name: "كارلو أنشيلوتي", image: "images/ancelotti.png" },
@@ -147,7 +174,7 @@ function listenToRoomUpdates(roomId) {
             }
         }
 
-        // تحديث الكرت النشط على الطاولة - استخدام الصورة
+        // تحديث الكرت النشط على الطاولة (عرض الصورة التصميمية مباشرة بدون إطارات قديمة)
         if (data.activeCard) {
             document.getElementById('active-card-name').innerText = data.activeCard.name;
             const cardImgElement = document.getElementById('active-card-img');
@@ -155,10 +182,11 @@ function listenToRoomUpdates(roomId) {
                 cardImgElement.src = data.activeCard.image;
                 cardImgElement.alt = data.activeCard.name;
                 cardImgElement.style.display = "block";
-                document.getElementById('active-card-icon-placeholder').style.display = "none";
-            } else {
-                cardImgElement.style.display = "none";
-                document.getElementById('active-card-icon-placeholder').style.display = "block";
+                cardImgElement.style.width = "100%";
+                cardImgElement.style.height = "100%";
+                cardImgElement.style.objectFit = "cover";
+                const placeholder = document.getElementById('active-card-icon-placeholder');
+                if (placeholder) placeholder.style.display = "none";
             }
         }
 
@@ -237,7 +265,7 @@ function startTurnTimer() {
     }, 1000);
 }
 
-// دالة رسم بطاقات اليد - استخدام الصور الفعلية
+// دالة رسم بطاقات اليد (عرض تصميم البطاقة الجاهز من مجلد images مباشرة بدون عناصر إضافية)
 function renderMyHand() {
     const container = document.getElementById('my-hand-container');
     container.innerHTML = '';
@@ -247,12 +275,7 @@ function renderMyHand() {
         div.onclick = () => playCard(index);
         
         div.innerHTML = `
-            <div class="card-top">UNO</div>
-            <div class="card-center-content">
-                <img src="${card.image}" alt="${card.name}" class="card-image">
-                <div class="card-title">${card.name}</div>
-            </div>
-            <div class="card-bottom">⚽</div>
+            <img src="${card.image}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block;">
         `;
         container.appendChild(div);
     });
