@@ -20,7 +20,7 @@ let myHandCards = [];
 let turnTimer = null;
 let timeLeft = 20;
 
-// قاعدة بيانات البطاقات الشاملة مع الصور الجاهزة
+// قاعدة بيانات البطاقات الـ 61 (رزمة اللعبة الكاملة)
 const cardDeckMaster = [
     // --- الأندية الكبرى ---
     { name: "برشلونة", image: "images/barcelona.png" },
@@ -50,7 +50,7 @@ const cardDeckMaster = [
     { name: "البرتغال", image: "images/portugal.png" },
     { name: "هولندا", image: "images/netherlands.png" },
 
-    // --- الدوريات والبطولات وأبطالها ---
+    // --- الدوريات والبطولات ---
     { name: "الدوري الإنجليزي", image: "images/premierleague.png" },
     { name: "الدوري الإسباني", image: "images/laliga.png" },
     { name: "الدوري الإيطالي", image: "images/seriea.png" },
@@ -63,13 +63,14 @@ const cardDeckMaster = [
     { name: "كأس العالم", image: "images/worldcup.png" },
     { name: "بطولة إفريقيا", image: "images/afcon.png" },
 
+    // --- أبطال الدوريات ---
     { name: "بطل إنجلترا", image: "images/champengland.png" },
     { name: "بطل إسبانيا", image: "images/champlaliga.png" },
     { name: "بطل إيطاليا", image: "images/champseriea.png" },
     { name: "بطل ألمانيا", image: "images/champbundesliga.png" },
     { name: "بطل فرنسا", image: "images/champligue1.png" },
 
-    // --- بطاقات الأكشن (متعددة المستويات) ---
+    // --- بطاقات الأكشن المكررة 3 مرات ---
     { name: "تخطي رقم 1", image: "images/skip1.png" },
     { name: "+2 رقم 1", image: "images/plus2x1.png" },
     { name: "تغيير اتجاه اللعب رقم 1", image: "images/reverse1.png" },
@@ -97,6 +98,38 @@ const cardDeckMaster = [
     { name: "جوزيه مورينيو", image: "images/mourinho.png" }
 ];
 
+// دالة خلط البطاقات عشوائياً (Fisher-Yates Shuffle)
+function shuffleDeck(array) {
+    let shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// دالة سحب بطاقة حقيقية من الرزمة وإعادة الخلط إذا بقيت 3 بطاقات أو أقل
+function pullCardsFromDeck(drawPile, discardPile, activeCard, count) {
+    let deck = drawPile ? [...drawPile] : [];
+    let discard = discardPile ? [...discardPile] : [];
+    let pulled = [];
+
+    for (let i = 0; i < count; i++) {
+        // إذا بقيت 3 بطاقات أو أقل في السحب، نخلط أوراق الطاولة السابقة مع المتبقي
+        if (deck.length <= 3 && discard.length > 0) {
+            let recycled = shuffleDeck(discard);
+            deck = [...deck, ...recycled];
+            discard = []; // تفريغ سجل الطاولة بعد إعادته للسحب
+        }
+
+        if (deck.length > 0) {
+            pulled.push(deck.shift()); // سحب البطاقة الأولى وحذفها من الرزمة
+        }
+    }
+
+    return { pulled, updatedDrawPile: deck, updatedDiscardPile: discard };
+}
+
 function createNewGame() {
     myPlayerName = document.getElementById('player-name').value.trim();
     if (!myPlayerName) return alert("الرجاء كتابة اسمك أولاً!");
@@ -104,11 +137,8 @@ function createNewGame() {
     currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
     document.getElementById('share-link-field').value = currentRoomId;
 
-    const initialCard = cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)];
-    
     database.ref('rooms/' + currentRoomId).set({
         host: myPlayerName,
-        activeCard: initialCard,
         players: [myPlayerName],
         status: "waiting",
         currentTurnIndex: 0,
@@ -152,12 +182,42 @@ function showLobbyUI() {
     document.getElementById('lobby-screen').classList.remove('hidden');
 }
 
+// بدء اللعبة وتوزيع الرزمة الحقيقية بدون تكرار
+function startGameSession() {
+    database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // 1. خلط الـ 61 بطاقة
+        let fullShuffledDeck = shuffleDeck(cardDeckMaster);
+
+        // 2. وضع البطاقة الأولى على الطاولة
+        const firstCardOnTable = fullShuffledDeck.shift();
+
+        // 3. توزيع 5 بطاقات حقيقية لكل لاعب من الرزمة
+        let initialHands = {};
+        data.players.forEach(player => {
+            initialHands[player] = fullShuffledDeck.splice(0, 5);
+        });
+
+        // 4. حفظ الرزمة المتبقية (drawPile) وأوراق اللاعبين في Firebase
+        database.ref('rooms/' + currentRoomId).update({ 
+            status: "playing",
+            currentTurnIndex: 0,
+            activeCard: firstCardOnTable,
+            drawPile: fullShuffledDeck,
+            discardPile: [],
+            hands: initialHands
+        });
+    });
+}
+
 function listenToRoomUpdates(roomId) {
     database.ref('rooms/' + roomId).on('value', (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
-        // تحديث قائمة اللاعبين
+        // تحديث قائمة اللاعبين في اللوبي
         if (data.players) {
             const playersUl = document.getElementById('players-ul');
             playersUl.innerHTML = data.players.map((p, i) => `<li>${i + 1}. ${p} ${i === 0 ? '👑' : ''}</li>`).join('');
@@ -174,7 +234,7 @@ function listenToRoomUpdates(roomId) {
             }
         }
 
-        // تحديث الكرت النشط على الطاولة (عرض الصورة التصميمية مباشرة بدون إطارات قديمة)
+        // تحديث الكرت النشط على الطاولة
         if (data.activeCard) {
             document.getElementById('active-card-name').innerText = data.activeCard.name;
             const cardImgElement = document.getElementById('active-card-img');
@@ -185,15 +245,26 @@ function listenToRoomUpdates(roomId) {
                 cardImgElement.style.width = "100%";
                 cardImgElement.style.height = "100%";
                 cardImgElement.style.objectFit = "cover";
+                cardImgElement.style.borderRadius = "12px";
                 const placeholder = document.getElementById('active-card-icon-placeholder');
                 if (placeholder) placeholder.style.display = "none";
             }
         }
 
+        // مزامنة بطاقات يدي من Firebase
+        if (data.hands && data.hands[myPlayerName]) {
+            myHandCards = data.hands[myPlayerName];
+            renderMyHand();
+        } else if (data.status === "playing") {
+            myHandCards = [];
+            renderMyHand();
+        }
+
         // إدارة الأدوار وحالة اللعبة
         if (data.status === "playing") {
             if (document.getElementById('game-screen').classList.contains('hidden')) {
-                showGameScreen();
+                document.getElementById('lobby-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
             }
 
             const players = data.players;
@@ -230,25 +301,6 @@ function listenToRoomUpdates(roomId) {
     });
 }
 
-function showGameScreen() {
-    document.getElementById('lobby-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-
-    if (myHandCards.length === 0) {
-        for (let i = 0; i < 5; i++) {
-            myHandCards.push(cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)]);
-        }
-        renderMyHand();
-    }
-}
-
-function startGameSession() {
-    database.ref('rooms/' + currentRoomId).update({ 
-        status: "playing",
-        currentTurnIndex: 0 
-    });
-}
-
 function startTurnTimer() {
     clearInterval(turnTimer);
     timeLeft = 20;
@@ -265,7 +317,7 @@ function startTurnTimer() {
     }, 1000);
 }
 
-// دالة رسم بطاقات اليد (عرض تصميم البطاقة الجاهز من مجلد images مباشرة بدون عناصر إضافية)
+// دالة رسم بطاقات اليد
 function renderMyHand() {
     const container = document.getElementById('my-hand-container');
     container.innerHTML = '';
@@ -274,7 +326,6 @@ function renderMyHand() {
         div.className = 'card';
         div.onclick = () => playCard(index);
         
-        // استخدام الكلاس النظيف مباشرة بدون أي عناصر إضافية داخله
         div.innerHTML = `
             <img src="${card.image}" alt="${card.name}" class="pure-card-image">
         `;
@@ -282,6 +333,7 @@ function renderMyHand() {
     });
 }
 
+// لعب كرت وإرسال الكرت السابق لسجل الطاولة (discardPile)
 function playCard(index) {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
@@ -293,20 +345,31 @@ function playCard(index) {
         }
 
         clearInterval(turnTimer);
-        const played = myHandCards.splice(index, 1)[0];
-        renderMyHand();
+        
+        let currentHand = [...(data.hands[myPlayerName] || [])];
+        const played = currentHand.splice(index, 1)[0];
+
+        // إضافة الكرت الذي كان على الطاولة سابقاً إلى سجل أوراق الطاولة (discardPile)
+        let discard = data.discardPile ? [...data.discardPile] : [];
+        if (data.activeCard) {
+            discard.push(data.activeCard);
+        }
 
         let nextIndex = (data.currentTurnIndex + 1) % players.length;
 
-        database.ref('rooms/' + currentRoomId).update({
-            activeCard: played,
-            currentTurnIndex: nextIndex,
-            lastPlayer: myPlayerName,
-            lastPlayedCard: played
-        });
+        let updates = {};
+        updates['activeCard'] = played;
+        updates['currentTurnIndex'] = nextIndex;
+        updates['lastPlayer'] = myPlayerName;
+        updates['lastPlayedCard'] = played;
+        updates['discardPile'] = discard;
+        updates['hands/' + myPlayerName] = currentHand;
+
+        database.ref('rooms/' + currentRoomId).update(updates);
     });
 }
 
+// سحب بطاقة حقيقية من drawPile مع إعادة الخلط التلقائي عند تبقي 3 بطاقات
 function playerDrawsCard(autoPass = false) {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
@@ -317,14 +380,24 @@ function playerDrawsCard(autoPass = false) {
         }
 
         clearInterval(turnTimer);
-        const drawn = cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)];
-        myHandCards.push(drawn);
-        renderMyHand();
+
+        // سحب كرت واحد من الرزمة المتبقية
+        const result = pullCardsFromDeck(data.drawPile, data.discardPile, data.activeCard, 1);
+        
+        let currentHand = [...(data.hands[myPlayerName] || [])];
+        if (result.pulled.length > 0) {
+            currentHand.push(...result.pulled);
+        }
 
         let nextIndex = (data.currentTurnIndex + 1) % players.length;
-        database.ref('rooms/' + currentRoomId).update({
-            currentTurnIndex: nextIndex
-        });
+
+        let updates = {};
+        updates['currentTurnIndex'] = nextIndex;
+        updates['drawPile'] = result.updatedDrawPile;
+        updates['discardPile'] = result.updatedDiscardPile;
+        updates['hands/' + myPlayerName] = currentHand;
+
+        database.ref('rooms/' + currentRoomId).update(updates);
     });
 }
 
@@ -339,13 +412,24 @@ function callVar() {
     });
 }
 
+// عقوبة الفار بسحب كرتين حقيقيين من الرزمة أيضاً
 function varDecisionCorrect() {
-    for(let i=0; i<2; i++) {
-        myHandCards.push(cardDeckMaster[Math.floor(Math.random() * cardDeckMaster.length)]);
-    }
-    renderMyHand();
-    alert("قرر الفار: الكرت صحيح! تم إعطاؤك كرتين عقوبة لأنك شككت في محله.");
-    database.ref('rooms/' + currentRoomId).update({ varActive: false });
+    database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
+        const data = snapshot.val();
+        const result = pullCardsFromDeck(data.drawPile, data.discardPile, data.activeCard, 2);
+
+        let currentHand = [...(data.hands[myPlayerName] || [])];
+        currentHand.push(...result.pulled);
+
+        let updates = {};
+        updates['varActive'] = false;
+        updates['drawPile'] = result.updatedDrawPile;
+        updates['discardPile'] = result.updatedDiscardPile;
+        updates['hands/' + myPlayerName] = currentHand;
+
+        database.ref('rooms/' + currentRoomId).update(updates);
+        alert("قرر الفار: الكرت صحيح! تم إعطاؤك كرتين عقوبة من الرزمة.");
+    });
 }
 
 function varDecisionWrong() {
