@@ -129,84 +129,42 @@ input[type="text"] {
     margin-bottom: 5px;
 }
 
-/* تصميم البطاقة بمظهر أونو الحقيقي */
+/* تصميم البطاقة النظيف (عرض الصورة الجاهزة مباشرة بدون إطارات بيضاء قديمة) */
 .card {
     width: 110px;
     height: 160px;
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-    border: 4px solid #ffffff;
+    background: transparent !important;
+    border: none !important;
     border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.5);
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 8px;
     position: relative;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     user-select: none;
     box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 12px 20px rgba(56, 189, 248, 0.3);
+    box-shadow: 0 10px 20px rgba(56, 189, 248, 0.4);
 }
 
-/* البيضاوي الأبيض في منتصف البطاقة مثل تصميم أونو الحقيقي */
+/* إزالة الشكل البيضاوي القديم لكي تظهر صورتك بالكامل */
 .card::before {
-    content: '';
-    position: absolute;
-    width: 75px;
-    height: 110px;
-    background: #ffffff;
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
+    display: none !important;
 }
 
-.card-top, .card-bottom {
-    font-size: 0.7rem;
-    font-weight: bold;
-    z-index: 2;
-    color: #38bdf8;
-    text-transform: uppercase;
-}
-
-.card-center-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+/* تنسيق الصورة داخل البطاقة لتملأ المساحة بشكل مثالي ومنحني الأطراف */
+.pure-card-image {
     width: 100%;
-}
-
-/* تنسيق صورة البطاقة داخل الشكل البيضاوي */
-.card-image {
-    max-width: 55px;
-    max-height: 55px;
-    object-fit: contain;
-    margin-bottom: 2px;
-}
-
-.card-title {
-    font-size: 0.65rem;
-    font-weight: bold;
-    color: #0f172a;
-    text-align: center;
-    padding: 0 4px;
-    max-width: 90px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
 }
 
 /* قسم أوراق اللاعب في الأسفل */
@@ -227,16 +185,11 @@ input[type="text"] {
 
 .hand-scroll {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     overflow-x: auto;
-    padding-bottom: 5px;
+    padding-bottom: 8px;
     min-height: 175px;
-}
-.pure-card-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* لضمان ملء البطاقة بالشكل الصحيح */
-    border-radius: 10px; /* لإنحناء الحواف إذا لزم الأمر */
+    align-items: center;
 }
 
 .hand-scroll::-webkit-scrollbar {
