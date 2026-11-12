@@ -18,7 +18,7 @@ let myPlayerName = "";
 let currentRoomId = "";
 let myHandCards = [];
 let turnTimer = null;
-let pauseTimer = null; // مؤقت الـ 5 ثوانٍ للاستراحة بعد اللعب
+let pauseTimer = null; 
 let timeLeft = 20;
 
 // قاعدة بيانات البطاقات الـ 61 (رزمة اللعبة الكاملة)
@@ -140,6 +140,7 @@ function createNewGame() {
         players: [myPlayerName],
         status: "waiting",
         currentTurnIndex: 0,
+        direction: 1, // 1 باتجاه معارب، -1 عكسي لبطاقة Reverse
         varActive: false,
         varCaller: "",
         varPlayer: ""
@@ -180,7 +181,7 @@ function showLobbyUI() {
     document.getElementById('lobby-screen').classList.remove('hidden');
 }
 
-// بدء اللعبة والتأكد أن الكرت الأول ليس بطاقة أكشن
+// بدء اللعبة وتوزيع الرزمة والتأكد أن الكرت الأول ليس بطاقة أكشن
 function startGameSession() {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
@@ -188,7 +189,6 @@ function startGameSession() {
 
         let fullShuffledDeck = shuffleDeck(cardDeckMaster);
 
-        // التأكد أن الكرت الأول ليس بطاقة أكشن (تخطي، +2، أو تغيير اتجاه)
         let firstCardIndex = fullShuffledDeck.findIndex(card => 
             !card.name.includes("تخطي") && !card.name.includes("+2") && !card.name.includes("تغيير اتجاه")
         );
@@ -203,12 +203,14 @@ function startGameSession() {
         database.ref('rooms/' + currentRoomId).update({ 
             status: "playing",
             currentTurnIndex: 0,
+            direction: 1,
             activeCard: firstCardOnTable,
-            previousCard: null, // لا يوجد كرت تحته في البداية
+            actionCard: null, // الكرت المعروض بجانبه إذا كان أكشن
             drawPile: fullShuffledDeck,
             discardPile: [firstCardOnTable],
             hands: initialHands,
-            winner: null
+            winner: null,
+            pendingPlus2: 0 // لتراكم بطاقات +2
         });
     });
 }
@@ -218,9 +220,11 @@ function listenToRoomUpdates(roomId) {
         const data = snapshot.val();
         if (!data) return;
 
-        // التحقق من حالة الفوز وإعلان البطل
+        // إعلان الفوز للجميع فوراً
         if (data.status === "finished" && data.winner) {
-            document.getElementById('current-turn-display').innerText = `🏆 الفائز باللعبة هو: ${data.winner}!`;
+            document.getElementById('current-turn-display').innerText = `🏆 انتهت اللعبة! الفائز هو: ${data.winner}!`;
+            const handContainer = document.getElementById('my-hand-container');
+            if (handContainer) handContainer.style.pointerEvents = "none";
             return;
         }
 
@@ -240,8 +244,7 @@ function listenToRoomUpdates(roomId) {
             }
         }
 
-        // عرض الكرت النشط على الطاولة مع دعم فكرة الكرتين المتداخلين إذا كان أكشن
-        const tableCenter = document.querySelector('.table-center');
+        // عرض الكرت النشط على الطاولة وبجانبه بطاقة الأكشن إذا وجدت (دون حجب الأساسي)
         if (data.activeCard) {
             document.getElementById('active-card-name').innerText = data.activeCard.name;
             const cardImgElement = document.getElementById('active-card-img');
@@ -258,21 +261,20 @@ function listenToRoomUpdates(roomId) {
                 if (placeholder) placeholder.style.display = "none";
             }
 
-            // إذا كان الكرت أوبشن/أكشن، نظهر الكرت الذي تحته متداخلاً بجانبه
-            let existingPrevImg = document.getElementById('previous-card-img');
-            if (data.previousCard && (data.activeCard.name.includes("تخطي") || data.activeCard.name.includes("+2") || data.activeCard.name.includes("تغيير اتجاه"))) {
-                if (!existingPrevImg) {
-                    existingPrevImg = document.createElement('img');
-                    existingPrevImg.id = 'previous-card-img';
-                    existingPrevImg.style.cssText = "width: 100px; height: 145px; object-fit: cover; border-radius: 12px; position: absolute; transform: translateX(35px) translateY(-10px); z-index: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.5);";
+            // عرض بطاقة الأكشن بجانب الكرت الأساسي دون حجبه
+            let actionImgElement = document.getElementById('table-action-card-img');
+            if (data.actionCard) {
+                if (!actionImgElement) {
+                    actionImgElement = document.createElement('img');
+                    actionImgElement.id = 'table-action-card-img';
+                    actionImgElement.style.cssText = "width: 105px; height: 150px; object-fit: cover; border-radius: 12px; position: absolute; transform: translateX(50px); box-shadow: 0 4px 12px rgba(0,0,0,0.6); z-index: 5;";
                     cardImgElement.parentElement.style.position = "relative";
-                    cardImgElement.parentElement.appendChild(existingPrevImg);
+                    cardImgElement.parentElement.appendChild(actionImgElement);
                 }
-                existingPrevImg.src = data.previousCard.image;
-                existingPrevImg.style.display = "block";
-                cardImgElement.style.zIndex = "2"; // الكرت العلوي فوقه
+                actionImgElement.src = data.actionCard.image;
+                actionImgElement.style.display = "block";
             } else {
-                if (existingPrevImg) existingPrevImg.style.display = "none";
+                if (actionImgElement) actionImgElement.style.display = "none";
             }
         }
 
@@ -289,11 +291,13 @@ function listenToRoomUpdates(roomId) {
 
             const players = data.players;
             const currentTurnPlayer = players[data.currentTurnIndex || 0];
-            document.getElementById('current-turn-display').innerText = `دور اللاعب: ${currentTurnPlayer}`;
+            let turnText = `دور اللاعب: ${currentTurnPlayer}`;
+            if (data.pendingPlus2 && data.pendingPlus2 > 0) {
+                turnText += ` ⚠️ (تراكم عقوبة +${data.pendingPlus2})`;
+            }
+            document.getElementById('current-turn-display').innerText = turnText;
 
             const handContainer = document.getElementById('my-hand-container');
-            
-            // القاعدة 1: السماح بالتمرير يمين ويسار دائماً في الأوراق بغض النظر عن الدور
             handContainer.style.overflowX = "auto";
             handContainer.style.pointerEvents = "auto";
 
@@ -327,7 +331,6 @@ function startTurnTimer() {
     }, 1000);
 }
 
-// رسم أوراق اليد مع السماح بالتحريك الدائم
 function renderMyHand() {
     const container = document.getElementById('my-hand-container');
     container.innerHTML = '';
@@ -343,18 +346,25 @@ function renderMyHand() {
     });
 }
 
-// لعب كرت مع تفعيل استراحة الـ 5 ثوانٍ، وفحص الفوز، والتعامل مع الأكشن
+// دالة حساب مؤشر اللاعب التالي بناءً على اتجاه اللعب (Direction)
+function getNextTurnIndex(currentIndex, playersCount, direction = 1, steps = 1) {
+    let newIndex = currentIndex + (direction * steps);
+    while (newIndex < 0) newIndex += playersCount;
+    return newIndex % playersCount;
+}
+
+// لعب الكرت مع القواعد الكاملة للأكشن والتراكم وإعلان الفوز
 function playCard(index) {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
         const players = data.players;
-        const currentTurnPlayer = players[data.currentTurnIndex];
+        const currentTurnIndex = data.currentTurnIndex;
+        const currentTurnPlayer = players[currentTurnIndex];
 
         if (currentTurnPlayer !== myPlayerName) {
             return alert("ليس دورك الآن!");
         }
 
-        // إذا كانت فترة الاستراحة قيد التشغيل، نمنع اللعب السريع
         if (data.isPaused) return;
 
         clearInterval(turnTimer);
@@ -363,41 +373,62 @@ function playCard(index) {
         const played = currentHand.splice(index, 1)[0];
 
         let discard = data.discardPile ? [...data.discardPile] : [];
-        let previousCard = data.activeCard; // حفظ الكرت الحالي ككرت تحته
         if (data.activeCard) {
             discard.push(data.activeCard);
         }
 
-        let nextIndex = (data.currentTurnIndex + 1) % players.length;
+        let direction = data.direction !== undefined ? data.direction : 1;
+        let nextIndex = getNextTurnIndex(currentTurnIndex, players.length, direction, 1);
         let handsUpdate = data.hands;
         handsUpdate[myPlayerName] = currentHand;
 
-        // القاعدة 4: معالجة بطاقات الأكشن (Skip / +2 / Reverse)
-        if (played.name.includes("تخطي")) {
-            nextIndex = (data.currentTurnIndex + 2) % players.length;
-        } else if (played.name.includes("+2")) {
-            let nextPlayerName = players[(data.currentTurnIndex + 1) % players.length];
-            let drawResult = pullCardsFromDeck(data.drawPile, discard, 2);
+        let newActiveCard = data.activeCard;
+        let newActionCard = null;
+        let pendingPlus2 = data.pendingPlus2 || 0;
+        let triggerPause = true; // استراحة 5 ثوانٍ افتراضياً
+
+        // فحص بطاقات الأكشن وقواعدها
+        if (played.name.includes("+2")) {
+            pendingPlus2 += 2;
+            newActionCard = played; // تظهر بجانب الكرت الأساسي دون حجبه
+            triggerPause = false; // لا انتظار 5 ثوانٍ، تمرير فوري للعقوبة
+            let nextPlayerName = players[nextIndex];
+            let drawResult = pullCardsFromDeck(data.drawPile, discard, pendingPlus2);
             
             let nextPlayerHand = [...(handsUpdate[nextPlayerName] || [])];
             nextPlayerHand.push(...drawResult.pulled);
             handsUpdate[nextPlayerName] = nextPlayerHand;
 
-            nextIndex = (data.currentTurnIndex + 2) % players.length;
             discard = drawResult.updatedDiscardPile;
+            pendingPlus2 = تصفير العقوبة بعد أخذها أو تركها تتراكم (سنتركها تتراكم إذا أراد اللاعب التالي الرد بـ +2، أو نجعلها تمرر الدور مباشرة مع سحب الكرتين):
+            // بما أن اللاعب التالي تلقى العقوبة وسحبها، نمرر دوره تلقائياً:
+            nextIndex = getNextTurnIndex(nextIndex, players.length, direction, 1);
+            pendingPlus2 = 0;
+        } else if (played.name.includes("تخطي")) {
+            newActionCard = played; // تظهر بجانب الكرت الأساسي
+            triggerPause = false;
+            // تنط دور اللاعب القادم بالكامل
+            nextIndex = getNextTurnIndex(currentTurnIndex, players.length, direction, 2);
         } else if (played.name.includes("تغيير اتجاه")) {
-            // يمكن عكس اتجاه الدوران إذا رغبت، أو اعتباره دور عادي مؤقتاً
-            nextIndex = (data.currentTurnIndex + 1) % players.length;
+            newActionCard = played; // تظهر بجانب الكرت الأساسي
+            direction *= -1; // قلب اتجاه اللعب
+            triggerPause = false;
+            nextIndex = getNextTurnIndex(currentTurnIndex, players.length, direction, 1);
+        } else {
+            // كرت عادي: يصبح هو الكرت النشط الجديد وتختفي بطاقة الأكشن القديمة
+            newActiveCard = played;
+            newActionCard = null;
         }
 
         let updates = {};
-        updates['activeCard'] = played;
-        updates['previousCard'] = previousCard;
+        updates['activeCard'] = newActiveCard;
+        updates['actionCard'] = newActionCard;
+        updates['direction'] = direction;
         updates['discardPile'] = discard;
         updates['hands'] = handsUpdate;
-        updates['isPaused'] = true; // تفعيل فترة الاستراحة (5 ثوانٍ)
+        updates['pendingPlus2'] = pendingPlus2;
 
-        // القاعدة 2: إعلان الفوز التلقائي إذا انتهت أوراق اللاعب
+        // إعلان الفوز للجميع فوراً إذا انتهت أوراق اللاعب
         if (currentHand.length === 0) {
             updates['status'] = "finished";
             updates['winner'] = myPlayerName;
@@ -407,30 +438,33 @@ function playCard(index) {
             return;
         }
 
-        // تحديث قاعدة البيانات للدخول في فترة الاستراحة
-        database.ref('rooms/' + currentRoomId).update(updates);
+        if (triggerPause) {
+            updates['isPaused'] = true;
+            database.ref('rooms/' + currentRoomId).update(updates);
 
-        // القاعدة 3: مؤقت الـ 5 ثوانٍ للاستراحة والحديث بين اللاعبين بعد وضع الورقة
-        let pauseLeft = 5;
-        const timerDisplay = document.getElementById('timer-display');
-        if (timerDisplay) timerDisplay.innerText = "استراحة: " + pauseLeft;
-
-        pauseTimer = setInterval(() => {
-            pauseLeft--;
+            let pauseLeft = 5;
+            const timerDisplay = document.getElementById('timer-display');
             if (timerDisplay) timerDisplay.innerText = "استراحة: " + pauseLeft;
-            if (pauseLeft <= 0) {
-                clearInterval(pauseTimer);
-                // بعد انتهاء الـ 5 ثوانٍ، ننقل الدور للاعب التالي ونلغي الاستراحة
-                database.ref('rooms/' + currentRoomId).update({
-                    currentTurnIndex: nextIndex,
-                    isPaused: false
-                });
-            }
-        }, 1000);
+
+            pauseTimer = setInterval(() => {
+                pauseLeft--;
+                if (timerDisplay) timerDisplay.innerText = "استراحة: " + pauseLeft;
+                if (pauseLeft <= 0) {
+                    clearInterval(pauseTimer);
+                    database.ref('rooms/' + currentRoomId).update({
+                        currentTurnIndex: nextIndex,
+                        isPaused: false
+                    });
+                }
+            }, 1000);
+        } else {
+            updates['isPaused'] = false;
+            updates['currentTurnIndex'] = nextIndex;
+            database.ref('rooms/' + currentRoomId).update(updates);
+        }
     });
 }
 
-// سحب بطاقة عند انتهاء الـ 20 ثانية أو الضغط على زر السحب
 function playerDrawsCard(autoPass = false) {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
@@ -450,13 +484,15 @@ function playerDrawsCard(autoPass = false) {
             currentHand.push(...result.pulled);
         }
 
-        let nextIndex = (data.currentTurnIndex + 1) % players.length;
+        let direction = data.direction !== undefined ? data.direction : 1;
+        let nextIndex = getNextTurnIndex(data.currentTurnIndex, players.length, direction, 1);
 
         let updates = {};
         updates['currentTurnIndex'] = nextIndex;
         updates['drawPile'] = result.updatedDrawPile;
         updates['discardPile'] = result.updatedDiscardPile;
         updates['hands/' + myPlayerName] = currentHand;
+        updates['pendingPlus2'] = 0;
 
         database.ref('rooms/' + currentRoomId).update(updates);
     });
