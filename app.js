@@ -140,7 +140,7 @@ function createNewGame() {
         players: [myPlayerName],
         status: "waiting",
         currentTurnIndex: 0,
-        direction: 1, // 1 باتجاه معارب، -1 عكسي لبطاقة Reverse
+        direction: 1,
         varActive: false,
         varCaller: "",
         varPlayer: ""
@@ -181,7 +181,6 @@ function showLobbyUI() {
     document.getElementById('lobby-screen').classList.remove('hidden');
 }
 
-// بدء اللعبة وتوزيع الرزمة والتأكد أن الكرت الأول ليس بطاقة أكشن
 function startGameSession() {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
@@ -205,12 +204,12 @@ function startGameSession() {
             currentTurnIndex: 0,
             direction: 1,
             activeCard: firstCardOnTable,
-            actionCard: null, // الكرت المعروض بجانبه إذا كان أكشن
+            actionCard: null,
             drawPile: fullShuffledDeck,
             discardPile: [firstCardOnTable],
             hands: initialHands,
             winner: null,
-            pendingPlus2: 0 // لتراكم بطاقات +2
+            pendingPlus2: 0
         });
     });
 }
@@ -220,7 +219,6 @@ function listenToRoomUpdates(roomId) {
         const data = snapshot.val();
         if (!data) return;
 
-        // إعلان الفوز للجميع فوراً
         if (data.status === "finished" && data.winner) {
             document.getElementById('current-turn-display').innerText = `🏆 انتهت اللعبة! الفائز هو: ${data.winner}!`;
             const handContainer = document.getElementById('my-hand-container');
@@ -244,7 +242,6 @@ function listenToRoomUpdates(roomId) {
             }
         }
 
-        // عرض الكرت النشط على الطاولة وبجانبه بطاقة الأكشن إذا وجدت (دون حجب الأساسي)
         if (data.activeCard) {
             document.getElementById('active-card-name').innerText = data.activeCard.name;
             const cardImgElement = document.getElementById('active-card-img');
@@ -261,7 +258,6 @@ function listenToRoomUpdates(roomId) {
                 if (placeholder) placeholder.style.display = "none";
             }
 
-            // عرض بطاقة الأكشن بجانب الكرت الأساسي دون حجبه
             let actionImgElement = document.getElementById('table-action-card-img');
             if (data.actionCard) {
                 if (!actionImgElement) {
@@ -346,14 +342,12 @@ function renderMyHand() {
     });
 }
 
-// دالة حساب مؤشر اللاعب التالي بناءً على اتجاه اللعب (Direction)
 function getNextTurnIndex(currentIndex, playersCount, direction = 1, steps = 1) {
     let newIndex = currentIndex + (direction * steps);
     while (newIndex < 0) newIndex += playersCount;
     return newIndex % playersCount;
 }
 
-// لعب الكرت مع القواعد الكاملة للأكشن والتراكم وإعلان الفوز
 function playCard(index) {
     database.ref('rooms/' + currentRoomId).once('value', (snapshot) => {
         const data = snapshot.val();
@@ -385,13 +379,12 @@ function playCard(index) {
         let newActiveCard = data.activeCard;
         let newActionCard = null;
         let pendingPlus2 = data.pendingPlus2 || 0;
-        let triggerPause = true; // استراحة 5 ثوانٍ افتراضياً
+        let triggerPause = true;
 
-        // فحص بطاقات الأكشن وقواعدها
         if (played.name.includes("+2")) {
             pendingPlus2 += 2;
-            newActionCard = played; // تظهر بجانب الكرت الأساسي دون حجبه
-            triggerPause = false; // لا انتظار 5 ثوانٍ، تمرير فوري للعقوبة
+            newActionCard = played;
+            triggerPause = false;
             let nextPlayerName = players[nextIndex];
             let drawResult = pullCardsFromDeck(data.drawPile, discard, pendingPlus2);
             
@@ -400,22 +393,18 @@ function playCard(index) {
             handsUpdate[nextPlayerName] = nextPlayerHand;
 
             discard = drawResult.updatedDiscardPile;
-            pendingPlus2 = تصفير العقوبة بعد أخذها أو تركها تتراكم (سنتركها تتراكم إذا أراد اللاعب التالي الرد بـ +2، أو نجعلها تمرر الدور مباشرة مع سحب الكرتين):
-            // بما أن اللاعب التالي تلقى العقوبة وسحبها، نمرر دوره تلقائياً:
             nextIndex = getNextTurnIndex(nextIndex, players.length, direction, 1);
             pendingPlus2 = 0;
         } else if (played.name.includes("تخطي")) {
-            newActionCard = played; // تظهر بجانب الكرت الأساسي
+            newActionCard = played;
             triggerPause = false;
-            // تنط دور اللاعب القادم بالكامل
             nextIndex = getNextTurnIndex(currentTurnIndex, players.length, direction, 2);
         } else if (played.name.includes("تغيير اتجاه")) {
-            newActionCard = played; // تظهر بجانب الكرت الأساسي
-            direction *= -1; // قلب اتجاه اللعب
+            newActionCard = played;
+            direction *= -1;
             triggerPause = false;
             nextIndex = getNextTurnIndex(currentTurnIndex, players.length, direction, 1);
         } else {
-            // كرت عادي: يصبح هو الكرت النشط الجديد وتختفي بطاقة الأكشن القديمة
             newActiveCard = played;
             newActionCard = null;
         }
@@ -428,7 +417,6 @@ function playCard(index) {
         updates['hands'] = handsUpdate;
         updates['pendingPlus2'] = pendingPlus2;
 
-        // إعلان الفوز للجميع فوراً إذا انتهت أوراق اللاعب
         if (currentHand.length === 0) {
             updates['status'] = "finished";
             updates['winner'] = myPlayerName;
